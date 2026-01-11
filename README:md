@@ -1,0 +1,24 @@
+# HelloActix
+
+
+## Code format
+´´´
+cargo fmt
+´´´
+
+## Run
+´´´
+cargo run
+´´´
+
+## Hot Reload
+´´´
+cargo install --locked watchexec-cli
+´´´
+´´´
+watchexec -w src -r cargo run
+´´´
+## Test Routes
+´´´
+http http://0.0.0.0:8080/ping
+´´´
