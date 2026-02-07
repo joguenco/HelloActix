@@ -1,4 +1,6 @@
+mod models;
 mod ping;
+mod schema;
 mod version;
 use crate::ping::mod_ping::ping as ping_handler;
 use crate::version::mod_version::version as version_handler;
@@ -9,8 +11,10 @@ use diesel::{
 use dotenvy::dotenv;
 use std::env;
 
+use crate::models::AccessToken;
 use actix_web::{App, Error, HttpServer, dev::ServiceRequest, error, middleware::Logger, web};
 use actix_web_httpauth::{extractors::bearer::BearerAuth, middleware::HttpAuthentication};
+use diesel::prelude::*;
 
 pub type DBPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
@@ -53,11 +57,26 @@ async fn auth_validator(
         return Err((error::ErrorBadRequest("Unauthorized"), req));
     };
 
-    let token = credentials.token();
+    let token = credentials.token().to_string();
     println!("Token: {}", token);
-    if token == "secret" {
-        Ok(req)
-    } else {
-        Err((error::ErrorUnauthorized("Unauthorized"), req))
+
+    let pool = req.app_data::<web::Data<DBPool>>().unwrap();
+
+    let mut conn = match pool.get() {
+        Ok(conn) => conn,
+        Err(e) => return Err((error::ErrorInternalServerError(e), req)),
+    };
+
+    use crate::schema::access_tokens::dsl::{access_tokens, token as token_col};
+
+    let token_exists = access_tokens
+        .filter(token_col.eq(&token))
+        .first::<AccessToken>(&mut conn)
+        .optional();
+
+    match token_exists {
+        Ok(Some(_)) => Ok(req),
+        Ok(None) => Err((error::ErrorUnauthorized("Unauthorized"), req)),
+        Err(e) => Err((error::ErrorInternalServerError(e), req)),
     }
 }
