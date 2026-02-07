@@ -8,4 +8,6 @@ CREATE TABLE access_tokens (
     id SERIAL PRIMARY KEY,
     token VARCHAR NOT NULL
 );
+
+INSERT INTO access_tokens (token) VALUES('Secret');
     
