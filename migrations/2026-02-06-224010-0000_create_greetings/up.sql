@@ -1,0 +1,5 @@
+CREATE TABLE greetings (
+  id SERIAL PRIMARY KEY,
+  greeting VARCHAR NOT NULL,
+  language VARCHAR NOT NULL
+)
