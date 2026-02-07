@@ -6,33 +6,34 @@ use diesel::{QueryableByName, RunQueryDsl, sql_query};
 use serde::Serialize;
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct VersionResponse {
     version: String,
-    version_data_base: String,
+    version_database: String,
 }
 
 #[derive(QueryableByName)]
 struct Version {
     #[diesel(sql_type = Text)]
-    version_data_base: String,
+    version_database: String,
 }
 
 #[get("/version")]
 pub async fn version(db: Data<DBPool>) -> impl Responder {
     match db.get() {
         Ok(mut conn) => {
-            let version_db = sql_query("SELECT version() as version_data_base")
+            let version_db = sql_query("SELECT version() as version_database")
                 .load::<Version>(&mut conn)
                 .map(|v| {
                     v.first()
-                        .map(|x| x.version_data_base.clone())
+                        .map(|x| x.version_database.clone())
                         .unwrap_or_else(|| "Unknown".to_string())
                 })
                 .unwrap_or_else(|_| "Error".to_string());
 
             let p = VersionResponse {
                 version: "1.0.0".to_string(),
-                version_data_base: version_db,
+                version_database: version_db,
             };
             HttpResponse::Ok().json(p)
         }
