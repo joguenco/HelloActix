@@ -9,22 +9,23 @@ use diesel::{
 use dotenvy::dotenv;
 use std::env;
 
-use actix_web::{App, HttpServer, middleware::Logger, web};
+use actix_web::{App, Error, HttpServer, dev::ServiceRequest, error, middleware::Logger, web};
+use actix_web_httpauth::{extractors::bearer::BearerAuth, middleware::HttpAuthentication};
 
 pub type DBPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let con = connect();
-
     let pool_data = web::Data::new(con);
 
     HttpServer::new(move || {
+        let auth = HttpAuthentication::with_fn(auth_validator);
         App::new()
             .app_data(pool_data.clone())
             .wrap(Logger::default())
             .service(ping_handler)
-            .service(version_handler)
+            .service(web::scope("/version").wrap(auth).service(version_handler))
     })
     .bind(("127.0.0.1", 8080))?
     .workers(3)
@@ -42,4 +43,21 @@ pub fn connect() -> DBPool {
         .max_size(5)
         .build(db)
         .expect("faild to create db pool")
+}
+
+async fn auth_validator(
+    req: ServiceRequest,
+    credentials: Option<BearerAuth>,
+) -> Result<ServiceRequest, (Error, ServiceRequest)> {
+    let Some(credentials) = credentials else {
+        return Err((error::ErrorBadRequest("Unauthorized"), req));
+    };
+
+    let token = credentials.token();
+    println!("Token: {}", token);
+    if token == "secret" {
+        Ok(req)
+    } else {
+        Err((error::ErrorUnauthorized("Unauthorized"), req))
+    }
 }

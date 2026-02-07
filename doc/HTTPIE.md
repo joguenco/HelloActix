@@ -1,0 +1,13 @@
+# HTTPIE
+
+## Ping
+
+```
+http http://0.0.0.0:8080/ping 
+```
+
+## Version
+
+```
+http http://0.0.0.0:8080/version "Authorization: Bearer secret"
+```

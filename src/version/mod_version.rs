@@ -18,7 +18,7 @@ struct Version {
     version_database: String,
 }
 
-#[get("/version")]
+#[get("")]
 pub async fn version(db: Data<DBPool>) -> impl Responder {
     match db.get() {
         Ok(mut conn) => {
